@@ -1,10 +1,15 @@
 function login(username, password)
-	m_log("logging in")
-
 	local param = {}
 	param["username"] = username
 	param["password"] = password
   local response = m_request_path("/")
+
+  if string.find(response, 'action="/logout/"', 0, true) then
+    m_log("already logged in")
+    return true
+  end
+
+	m_log("logging in")
 	response = m_submit_form(response, "//input[@name = 'submitForm']", param)
 
 	if string.find(response, 'action="/logout/"', 0, true) then
