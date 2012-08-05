@@ -41,6 +41,7 @@ function run_sell()
 		-- Read current bottle price from /stock/bottle/
 		page = m_request_path("/stock/bottle/")
 		current_price = get_bottle_price(page)
+    m_log("bottle price: " .. current_price)
 
 		-- Check if bottle price is greater or equal the sell price
 		if current_price >= tonumber(status_sell["price"]) then
@@ -67,6 +68,10 @@ function run_sell()
 				-- Stop selling on non continous mode
 				return -1
 			end
-		end
+		else
+      -- Sell price was below price - continue waiting
+      m_log("price too low - waiting")
+      return 30, 180
+    end
 	end
 end
