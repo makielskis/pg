@@ -2,7 +2,7 @@ dofile('packages/kv/base.lua')
 
 status_study = {}
 status_study["trainings"] = ","
-status_study["trainings_from"] = "att,def,agi,sprechen,musik,sozkontakte,konzentration,pickpocket"
+status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"
 
 interface_study = {}
 interface_study["module"] = "Weiterbildungen"
@@ -35,7 +35,7 @@ function start_training(page, training)
   return true
 end
 
-function get_timer() 
+function get_timer()
   m_log("getting pennerbar")
   local pennerbar = m_request_path("/pennerbar.xml")
   local timer = m_get_by_xpath(pennerbar, "//timer/@value")
