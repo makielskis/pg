@@ -1,13 +1,15 @@
-dofile('packages/kv/base.lua')
+dofile('packages/pg/base.lua')
 
 status_study = {}
 status_study["trainings"] = ","
 status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"
+status_study["alcohol"] = "0"
 
 interface_study = {}
 interface_study["module"] = "Weiterbildungen"
 interface_study["active"] = { input_type = "toggle", display_name = "Weiterbildungen starten" }
 interface_study["trainings"] = { input_type = "list_list", display_name = "Weiterbildungen" }
+interface_study["alcohol"] = { input_type = "checkbox", display_name = "Betrinken" }
 
 training_index = 1
 
@@ -21,10 +23,20 @@ function start_training(page, training)
     return false
   end
 
+  -- drink
+  if tonumber(status_study["alcohol"]) == 1 then
+    increase_alc()
+  end
+
   -- "setup form"
-    m_log("starting training: " .. training)
+  m_log("starting training: " .. training)
   local action = "/skill/upgrade/" .. btn_id .. "/"
   page = m_submit_form(page, "//form[@name = 'starten']", {}, action)
+
+  -- drink
+  if tonumber(status_study["alcohol"]) == 1 then
+    decrease_alc()
+  end
 
   -- success?
   local url = m_get_by_xpath(page, "//meta[@name = 'location']/@content")
@@ -36,10 +48,67 @@ function start_training(page, training)
 end
 
 function get_timer()
-  m_log("getting pennerbar")
+  return tonumber(get_pennerbar("timer"))
+end
+
+function buy_food(count)
+  m_log("buying " .. count .. " breads")
+
+  local params = {}
+  params["menge"] = count
+
+  local page = m_request_path("/city/supermarket/food/")
+  m_submit_form(page, "//input[@id = 'submitForm0']", params)
+end
+
+function buy_beer(count)
+  m_log("buying " .. count .. " beers")
+
+  local params = {}
+  params["menge"] = count
+
+  local page = m_request_path("/city/supermarket/")
+  m_submit_form(page, "//input[@id = 'submitForm0']", params)
+end
+
+function drink_beer(count)
+  m_log("drinking " .. count .. " beers")
+
+  local params = {}
+  params["menge"] = count
+
+  local page = m_request_path("/stock/")
+  m_submit_form(page, "//input[@id = 'drink_Bier']", params)
+end
+
+function eat_bread(count)
+  m_log("eating " .. count .. " breads")
+
+  local params = {}
+  params["menge"] = count
+
+  local page = m_request_path("/stock/foodstuffs/food/")
+  m_submit_form(page, "//input[@id = 'drink_Brot']", params)
+end
+
+function increase_alc()
   local pennerbar = m_request_path("/pennerbar.xml")
-  local timer = m_get_by_xpath(pennerbar, "//timer/@value")
-  return tonumber(timer)
+  local money = tonumber(get_pennerbar_page(pennerbar, "cash")) / 100
+  local alc_level = tonumber(get_pennerbar_page(pennerbar, "promille"))
+
+  if money < 9 * 2.55 then
+    m_log("not enough money for alcohol")
+    return false
+  end
+
+  buy_food(9)
+  local beerCount = round(((2.5 - alc_level) / 0.35) + 0.5)
+  buy_beer(beerCount)
+  drink_beer(beerCount)
+end
+
+function decrease_alc()
+  eat_bread(9)
 end
 
 function run_study()

@@ -21,6 +21,18 @@ function login(username, password)
 	end
 end
 
+function get_pennerbar(entry)
+  m_log("getting pennerbar")
+  local pennerbar = m_request_path("/pennerbar.xml")
+  local value = m_get_by_xpath(pennerbar, "//" .. entry .. "/@value")
+  return value
+end
+
+function get_pennerbar_page(pennerbar, entry)
+  local value = m_get_by_xpath(pennerbar, "//" .. entry .. "/@value")
+  return value
+end
+
 function explode(d,p)
   local t, ll
   t={}
@@ -37,4 +49,9 @@ function explode(d,p)
       end
     end
   return t
+end
+
+function round(num, idp)
+  local mult = 10^(idp or 0)
+  return math.floor(num * mult + 0.5) / mult
 end
