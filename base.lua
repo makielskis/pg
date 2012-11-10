@@ -1,24 +1,24 @@
 function login(username, password)
   m_log("getting start page")
-	local response = m_request_path("/")
-	if string.find(response, 'action="/logout/"', 0, true) then
-		m_log("already logged in")
-		return true
-	end
+  local response = m_request_path("/")
+  if string.find(response, 'action="/logout/"', 0, true) then
+    m_log("already logged in")
+    return true
+  end
 
-	local param = {}
-	param["username"] = username
-	param["password"] = password
-	m_log("logging in")
-	response = m_submit_form(response, "//input[@name = 'submitForm']", param)
+  local param = {}
+  param["username"] = username
+  param["password"] = password
+  m_log("logging in")
+  response = m_submit_form(response, "//input[@name = 'submitForm']", param)
 
-	if string.find(response, 'action="/logout/"', 0, true) then
-		m_log("logged in")
-		return true
-	else
-		m_log_error("not logged in")
-		return false
-	end
+  if string.find(response, 'action="/logout/"', 0, true) then
+    m_log("logged in")
+    return true
+  else
+    m_log_error("not logged in")
+    return false
+  end
 end
 
 function get_pennerbar(entry)
@@ -31,6 +31,20 @@ end
 function get_pennerbar_page(pennerbar, entry)
   local value = m_get_by_xpath(pennerbar, "//" .. entry .. "/@value")
   return value
+end
+
+function concat_keys(t, delimiter)
+  local s = ""
+  local i = 0
+  for k, v in pairs(t) do
+    if i == 0 then
+      s = v
+      i = 1
+    else
+      s = s .. "," .. k
+    end
+  end
+  return s
 end
 
 function explode(d,p)
