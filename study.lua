@@ -4,14 +4,13 @@ status_study = {}
 status_study["trainings"] = ","
 status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"
 status_study["alcohol"] = "0"
+status_study["training_index"] = "1"
 
 interface_study = {}
 interface_study["module"] = "Weiterbildungen"
 interface_study["active"] = { input_type = "toggle", display_name = "Weiterbildungen starten" }
 interface_study["trainings"] = { input_type = "list_list", display_name = "Weiterbildungen" }
 interface_study["alcohol"] = { input_type = "checkbox", display_name = "Betrinken" }
-
-training_index = 1
 
 function start_training(page, training)
   -- get taining name + mystery number
@@ -121,9 +120,11 @@ function run_study()
   end
 
   -- start from begin if couter is impossible
+  local training_index = tonumber(status_study["training_index"])
   if training_index >= #trainings then
     m_log("restarting from begin")
     training_index = 1
+    m_set_status("training_index", "1")
   end
 
   -- check timer
@@ -143,7 +144,7 @@ function run_study()
   local result = start_training(page, next_training)
 
   -- next time -> next training
-  training_index = training_index + 1
+  m_set_status("training_index", tostring(training_index + 1))
 
   -- evaluate result
   if result then
