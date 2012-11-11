@@ -58,15 +58,18 @@ function get_activity_time(page)
 end
 
 function run_crime()
+  -- get crime page
+  m_log("getting crime page")
+  local page = m_request_path("/activities/crime/")
+
+  -- read crimes
+  local crimes = get_crimes(page)
+
   -- check if crime is set
   if status_crime["crime"] == "" then
     m_log_error("no crime set - exiting")
     return
   end
-
-  -- get crime page
-  m_log("getting crime page")
-  local page = m_request_path("/activities/crime/")
 
   -- check for activity
   local activity = tonumber(get_activity_time(page))
@@ -74,9 +77,6 @@ function run_crime()
     m_log("already active for " .. activity .. "s")
     return activity + 60, activity + 120
   end
-
-  -- read crimes
-  local crimes = get_crimes(page)
 
   -- start selected crime
   m_log("starting " .. status_crime["crime"])
