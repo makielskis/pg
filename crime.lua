@@ -48,15 +48,6 @@ function get_crimes(page)
   return mapping
 end
 
-function get_activity_time(page)
-  local timer = m_get_by_xpath(page, "//div[@id = 'active_process2']")
-  if timer ~= "" then
-    return m_get_by_regex(timer, "counter\\((-?[0-9]*)\\)")
-  else
-    return "0"
-  end
-end
-
 function run_crime()
   -- get crime page
   m_log("getting crime page")
