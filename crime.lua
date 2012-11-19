@@ -38,9 +38,9 @@ function get_crimes(page)
   end
 
   -- update status
-  local crime_from = ""
+  local crime_from = "-"
   for k,v in pairs(mapping) do
-    crime_from = crime_from .. k .. ","
+    crime_from = crime_from .. "," .. k
   end
   crime_from = string.sub(crime_from, 0, string.len(crime_from) - 1)
   m_set_status("crime_from", crime_from)
@@ -56,12 +56,6 @@ function run_crime()
   -- read crimes
   local crimes = get_crimes(page)
 
-  -- check if crime is set
-  if status_crime["crime"] == "" then
-    m_log_error("no crime set - exiting")
-    return
-  end
-
   -- check for activity
   local activity = tonumber(get_activity_time(page))
   if activity > 0 then
@@ -69,8 +63,18 @@ function run_crime()
     return activity + 60, activity + 120
   end
 
+  -- check if crime is set
+  if status_crime["crime"] == "" or status_crime["crime"] == "-" then
+    m_log_error("no crime set - exiting")
+    return
+  end
+
   -- start selected crime
   m_log("starting " .. status_crime["crime"])
+  if not crimes[status_crime["crime"]] then
+    m_log_error(status_crime["crime"] .. " not found")
+    return
+  end
   page = commit_crime(crimes[status_crime["crime"]])
 
   -- read activity time
