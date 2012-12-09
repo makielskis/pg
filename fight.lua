@@ -131,7 +131,7 @@ function run_fight()
       return -1
     end
 
-    local next_victim = victims[1]
+    next_victim = victims[1]
   end
 
   -- start fight
