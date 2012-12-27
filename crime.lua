@@ -9,6 +9,10 @@ interface_crime["module"] = "Verbrechen"
 interface_crime["active"] = { input_type = "toggle", display_name = "Verbrechen begehen" }
 interface_crime["crime"] = { input_type = "dropdown", display_name = "Verbrechen" }
 
+function trim(s)
+  return s:match "^%s*(.-)%s*$"
+end
+
 function commit_crime(id)
   return m_request_path('/activities/crime/?start_crime=' .. id)
 end
@@ -20,7 +24,7 @@ function get_crimes(page)
   local crime_array = {}
   local crimes = m_get_all_by_xpath(page, "//span[@class = 'crime_headline']/child::text()")
   for k,v in pairs(crimes) do
-    table.insert(crime_array, string.sub(v, 0, string.len(v) - 1))
+    table.insert(crime_array, string.sub(v, 0, string.len(v)))
   end
 
   -- get crime ids
@@ -34,7 +38,7 @@ function get_crimes(page)
   -- iterate over ids because these are crimes that can be commited
   local mapping = {}
   for i = 1, #crime_id_array do
-    mapping[crime_array[i]] = crime_id_array[i]
+    mapping[trim(crime_array[i])] = crime_id_array[i]
   end
 
   -- update status
@@ -42,7 +46,6 @@ function get_crimes(page)
   for k,v in pairs(mapping) do
     crime_from = crime_from .. "," .. k
   end
-  crime_from = string.sub(crime_from, 0, string.len(crime_from) - 1)
   m_set_status("crime_from", crime_from)
 
   return mapping
@@ -72,7 +75,10 @@ function run_crime()
   -- start selected crime
   m_log("starting " .. status_crime["crime"])
   if not crimes[status_crime["crime"]] then
-    m_log_error(status_crime["crime"] .. " not found")
+    m_log_error("\"" .. status_crime["crime"] .. "\" not found")
+    for k, v in pairs(crimes) do
+      m_log_error("\"" .. k .. "\"")
+    end
     return
   end
   page = commit_crime(crimes[status_crime["crime"]])
