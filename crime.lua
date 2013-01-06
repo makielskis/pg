@@ -13,23 +13,25 @@ function trim(s)
   return s:match "^%s*(.-)%s*$"
 end
 
-function commit_crime(id)
-  return m_request_path('/activities/crime/?start_crime=' .. id)
+function commit_crime(id, callback)
+  return http.get_path('/activities/crime/?start_crime=' .. id, function(page)
+    return callback(false, page)
+  end)
 end
 
 function get_crimes(page)
-  m_log("reading crimes")
+  util.log("reading crimes")
 
   -- get crime names
   local crime_array = {}
-  local crimes = m_get_all_by_xpath(page, "//span[@class = 'crime_headline']/child::text()")
+  local crimes = util.get_all_by_xpath(page, "//span[@class = 'crime_headline']/child::text()")
   for k,v in pairs(crimes) do
     table.insert(crime_array, string.sub(v, 0, string.len(v)))
   end
 
   -- get crime ids
   local crime_id_array = {}
-  local crime_ids = m_get_all_by_regex(page, "start_crime\\((\\d*)\\)")
+  local crime_ids = util.get_all_by_regex(page, "start_crime\\((\\d*)\\)")
   for i, match_table in ipairs(crime_ids) do
     table.insert(crime_id_array, match_table[1])
   end
@@ -46,46 +48,46 @@ function get_crimes(page)
   for k,v in pairs(mapping) do
     crime_from = crime_from .. "," .. k
   end
-  m_set_status("crime_from", crime_from)
+  util.set_status("crime_from", crime_from)
 
   return mapping
 end
 
 function run_crime()
   -- get crime page
-  m_log("getting crime page")
-  local page = m_request_path("/activities/crime/")
+  util.log("getting crime page")
+  return http.get_path("/activities/crime/", function(page)
+    -- read crimes
+    local crimes = get_crimes(page)
 
-  -- read crimes
-  local crimes = get_crimes(page)
-
-  -- check for activity
-  local activity = tonumber(get_activity_time(page))
-  if activity > 0 then
-    m_log("already active for " .. activity .. "s")
-    return activity + 60, activity + 120
-  end
-
-  -- check if crime is set
-  if status_crime["crime"] == "" or status_crime["crime"] == "-" then
-    m_log_error("no crime set - exiting")
-    return
-  end
-
-  -- start selected crime
-  m_log("starting " .. status_crime["crime"])
-  if not crimes[status_crime["crime"]] then
-    m_log_error("\"" .. status_crime["crime"] .. "\" not found")
-    for k, v in pairs(crimes) do
-      m_log_error("\"" .. k .. "\"")
+    -- check for activity
+    local activity = tonumber(get_activity_time(page))
+    if activity > 0 then
+      util.log("already active for " .. activity .. "s")
+      return on_finish(activity + 60, activity + 120)
     end
-    return
-  end
-  page = commit_crime(crimes[status_crime["crime"]])
 
-  -- read activity time
-  activity = tonumber(get_activity_time(page))
-  m_log("blocked for " .. activity)
+    -- check if crime is set
+    if status_crime["crime"] == "" or status_crime["crime"] == "-" then
+      util.log_error("no crime set - exiting")
+      return on_finish(-1)
+    end
 
-  return activity, activity + 180
+    -- start selected crime
+    util.log("starting " .. status_crime["crime"])
+    if not crimes[status_crime["crime"]] then
+      util.log_error("\"" .. status_crime["crime"] .. "\" not found")
+      for k, v in pairs(crimes) do
+        util.log_error("\"" .. k .. "\"")
+      end
+      return on_finish(-1)
+    end
+
+    commit_crime(crimes[status_crime["crime"]], function(err, page)
+      -- read activity time
+      activity = tonumber(get_activity_time(page))
+      util.log("blocked for " .. activity)
+      return on_finish(activity, activity + 180)
+    end)
+  end)
 end

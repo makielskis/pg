@@ -1,59 +1,68 @@
 function login(username, password)
-  m_log("getting start page")
-  local response = m_request_path("/")
-  if string.find(response, 'action="/logout/"', 0, true) then
-    m_log("already logged in")
-    return true
-  end
+  util.log("getting start page")
+  return http.get_path("/", function(page)
+    if string.find(page, 'action="/logout/"', 0, true) then
+      util.log("already logged in")
+      return on_finish(true)
+    end
 
-  local param = {}
-  param["username"] = username
-  param["password"] = password
-  m_log("logging in")
-  response = m_submit_form(response, "//input[@name = 'submitForm']", param)
+    util.log("logging in")
+    local param = {}
+    param["username"] = username
+    param["password"] = password
+    return http.submit_form(page, "//input[@name = 'submitForm']", param, function(page)
+      if string.find(page, 'action="/logout/"', 0, true) then
+        util.log("logged in")
+        return on_finish(true)
+      else
+        util.log_error("not logged in")
+        return on_finish(false)
+      end
+    end)
+  end)
+end
 
-  if string.find(response, 'action="/logout/"', 0, true) then
-    m_log("logged in")
-    return true
+function chain(funs, err, param, callback)
+  if #funs == 0 then
+    return callback(err, param)
   else
-    m_log_error("not logged in")
-    return false
+    local call_me = funs[1]
+    return call_me(err, param, function(err, param)
+      table.remove(funs, 1)
+      return chain(funs, err, param, callback)
+    end)
   end
 end
 
-function get_pennerbar(entry)
-  m_log("getting pennerbar")
-  local pennerbar = m_request_path("/pennerbar.xml")
-  local value = m_get_by_xpath(pennerbar, "//" .. entry .. "/@value")
-  return value
+function get_pennerbar(entry, callback)
+  util.log("getting pennerbar")
+  return http.get_path("/pennerbar.xml", function(page)
+    return callback(false, get_pennerbar_info(page, entry))
+  end)
 end
 
-function get_pennerbar_page(pennerbar, entry)
-  local value = m_get_by_xpath(pennerbar, "//" .. entry .. "/@value")
-  return value
+function get_pennerbar_info(pennerbar, entry)
+  return util.get_by_xpath(pennerbar, "//" .. entry .. "/@value")
 end
 
 function get_activity_time(page)
-  local timer = m_get_by_xpath(page, "//div[@id = 'active_process2']")
+  local timer = util.get_by_xpath(page, "//div[@id = 'active_process2']")
   if timer ~= "" then
-    return m_get_by_regex(timer, "counter\\((-?[0-9]*)\\)")
+    return util.get_by_regex(timer, "counter\\((-?[0-9]*)\\)")
   else
     return "0"
   end
 end
 
-function concat_keys(t, delimiter)
-  local s = ""
-  local i = 0
-  for k, v in pairs(t) do
-    if i == 0 then
-      s = v
-      i = 1
-    else
-      s = s .. "," .. k
-    end
+function clear_cart(page, callback)
+  if (util.get_by_xpath(page, "//input[@name = 'bottlecollect_pending']/@value") == "True") then
+    util.log("clearing cart")
+    return http.submit_form(page, "//form[contains(@action, 'bottle')]", function(page)
+      return callback(false, page)
+    end)
+  else
+    return callback(false, page)
   end
-  return s
 end
 
 function explode(d,p)
