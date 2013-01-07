@@ -134,15 +134,15 @@ function increase_alc(callback)
     else
       return chain({
         function(not_used_0, not_used_1, callback)
-          buy_food(9, callback)
+          return buy_food(9, callback)
         end,
 
         function(not_used_0, not_used_1, callback)
-          buy_beer(beerCount, callback)
+          return buy_beer(beerCount, callback)
         end,
 
         function(not_used_0, not_used_1, callback)
-          drink_beer(beerCount, callback)
+          return drink_beer(beerCount, callback)
         end
       }, false, nil, callback)
     end

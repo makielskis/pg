@@ -83,7 +83,7 @@ function run_crime()
       return on_finish(-1)
     end
 
-    commit_crime(crimes[status_crime["crime"]], function(err, page)
+    return commit_crime(crimes[status_crime["crime"]], function(err, page)
       -- read activity time
       activity = tonumber(get_activity_time(page))
       util.log("blocked for " .. activity)
