@@ -27,6 +27,20 @@ function set_next_victim()
   end
 end
 
+function empty_cart(callback)
+  return http.get_path("/activities/", function(page)
+    -- empty cart
+    if util.get_by_xpath(page, "//input[@name = 'bottlecollect_pending']/@value") == "True" then
+      util.log("clearing cart")
+      return http.submit_form(page, "//form[contains(@action, 'bottle')]", function(page)
+        return callback(false, page)
+      end)
+    else
+      return callback(false, page)
+    end
+  end)
+end
+
 function get_downfight_victim(fightpage, callback)
   -- get fight values
   local att = tonumber(util.get_by_xpath(fightpage, "//div[@class = 'box_att']/span[@class = 'fight_num']"))
@@ -159,7 +173,6 @@ function run_fight()
             -- check
             local url = util.get_by_xpath(page, "//meta[@name = 'location']/@content")
             local status = util.get_by_regex(url, "=([a-z]*)$")
-            local retry = false
             if status == "limitexceed" then
               util.log("victim not in point range")
             elseif status == "notfound" then
@@ -169,8 +182,9 @@ function run_fight()
             elseif status == "holiday" then
               util.log("victim hast holiday protection")
             elseif status == "erroractivity" then
-              empty_cart()
-              retry = true
+              return empty_cart(function(err, page)
+                return on_finish(20, 60)
+              end)
             elseif status == "success" then
               util.log("fight started")
               set_next_victim()
@@ -181,13 +195,8 @@ function run_fight()
 
             -- fight was not started
             util.log("fight not started")
-            if retry then
-              return on_finish(20, 60)
-            else
-              -- not started -> go for the next one
-              set_next_victim()
-              return on_finish(10, 60)
-            end
+            set_next_victim()
+            return on_finish(20, 60)
           end)
         end)
       end)
