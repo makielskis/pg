@@ -123,7 +123,7 @@ function eat_bread(count, callback)
 end
 
 function increase_alc(callback)
-  http.get_path("/pennerbar.xml", function(pennerbar)
+  return http.get_path("/pennerbar.xml", function(pennerbar)
     local money = tonumber(get_pennerbar_info(pennerbar, "cash")) / 100
     local alc_level = tonumber(get_pennerbar_info(pennerbar, "promille"))
     local beerCount = round(((2.5 - alc_level) / 0.35) + 0.5)
