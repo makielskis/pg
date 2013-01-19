@@ -77,6 +77,8 @@ function get_downfight_victim(fightpage, callback)
           return callback(false, v[1])
         end
       end
+
+      return callback("no downfight victim found", nil)
     end)
   else
     return callback("could not read all fight values", nil)
@@ -123,6 +125,7 @@ function get_next_victim(callback)
     return http.get_path("/fight/", function(page)
       return get_downfight_victim(page, function(err, victim)
         if err then
+          util.log(err)
           return callback("no_downfight_victim", nil)
         else
           return callback(false, victim)
@@ -132,7 +135,7 @@ function get_next_victim(callback)
   else
     victims = explode(",", status_fight["victims"])
     if victims[1] == "" then
-      return callback("no_victiutil.set", nil)
+      return callback("no_victim_set", nil)
     else
       return callback(false, victims[1])
     end
@@ -151,7 +154,7 @@ function run_fight()
     if err and err == "no_downfight_victim" then
       util.log("no downfight victim in range")
       return on_finish(900, 1200)
-    elseif err and err == "no_victiutil.set" then
+    elseif err and err == "no_victim_set" then
       util.log("no victim set")
       return on_finish(-1)
     else
