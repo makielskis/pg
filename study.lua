@@ -1,5 +1,3 @@
-dofile('packages/pg/base.lua')
-
 status_study = {}
 status_study["trainings"] = ","
 status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"

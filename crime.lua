@@ -1,5 +1,3 @@
-dofile('packages/pg/base.lua')
-
 status_crime = {}
 status_crime["crime"] = ""
 status_crime["crime_from"] = ""

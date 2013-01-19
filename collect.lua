@@ -1,5 +1,3 @@
-dofile('packages/pg/base.lua')
-
 interface_collect = {}
 interface_collect["module"] = "Flaschen sammeln"
 interface_collect["active"] = { input_type = "toggle", display_name = "Sammeln gehen" }

@@ -1,5 +1,3 @@
-dofile('packages/pg/base.lua')
-
 status_fight = {}
 status_fight["victims"] = ""
 status_fight["auto"] = "0"
