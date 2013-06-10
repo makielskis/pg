@@ -11,7 +11,7 @@ function login(username, password)
     param["username"] = username
     param["password"] = password
     return http.submit_form(page, "//input[@name = 'submitForm']", param, function(page)
-      if string.find(page, 'action="/logout/"', 0, true) then
+      if string.find(page, 'action="/logout/', 0, true) then
         util.log("logged in")
         return on_finish(true)
       else
