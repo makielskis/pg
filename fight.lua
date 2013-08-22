@@ -98,7 +98,7 @@ function is_blocked(check_name)
         local name = entry:sub(0, pos - 1)
         local time = tonumber(entry:sub(pos + 1))
         if os.time() < time then
-          -- readd entry
+          -- read entry
           new_blocklist = new_blocklist .. entry .. ","
 
           -- found it!
@@ -112,7 +112,7 @@ function is_blocked(check_name)
   end
 
   if not found then
-    new_blocklist = new_blocklist .. check_name .. "|" .. os.time()  .. ","
+    new_blocklist = new_blocklist .. check_name .. "|" .. os.time() + 129600 .. ","
   end
 
   util.set_status("blocklist", new_blocklist)
