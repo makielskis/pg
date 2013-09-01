@@ -56,7 +56,7 @@ function find_pets(page)
   -- update status
   util.set_status("pets_from", status)
 
-  return missions
+  return pets
 end
 
 function get_form(page, callback)
@@ -86,22 +86,47 @@ function get_stray_time(page)
 end
 
 function get_location(page)
-  local slots = util.get_all_by_xpath(page, "//select[@name = 'area_id']/option/node()")
+  local slots = util.get_all_by_xpath(page, "//select[@name = 'area_id']/option")
   for i, location in ipairs(slots) do
     if i == location_translation[status_stray["location"]] then
-      return split(location)[1]
+      return util.get_by_regex(location, 'value="([^"]*)')
     end
   end
   return ""
 end
 
+function acknowledge(pet_page, ajax_page, callback)
+  util.log("acknowledge check");
+  local button = util.get_by_xpath(ajax_page, "//input[@id = 'get_reward_button']/@id");
+  if button == "" then
+    return callback(nil, false)
+  end
+
+  if string.find(pet_page, '/pet/get_roam_reward/', 0, true) then
+    util.log("acknowledging")
+    return http.get_path("/pet/get_roam_reward/", function(page)
+      util.log("acknowledge done")
+      return callback(nil, true)
+    end)
+  end
+
+  return callback("acknowledge url problem", nil)
+end
+
+function energy_check(ajax_page, pet_id)
+  local xpath = "//div[@id = 's_pet" .. pet_id .. "']//div[@class = 'pet_hp_mini_data']/text()"
+  local energy = util.get_by_xpath(ajax_page, xpath)
+  util.log("pet energy: " .. energy)
+  return tonumber(energy)
+end
+
 function run_stray()
-  return http.get_path("/pet/", function(page)
+  return http.get_path("/pet/", function(pet_page)
     -- read list of pets
-    find_pets(page)
+    local pet_map = find_pets(pet_page)
 
     -- check activity
-	  local stray_time = get_stray_time(page)
+	  local stray_time = get_stray_time(pet_page)
     if stray_time > 0 then
 	    util.log("already roaming " .. stray_time)
       return on_finish(stray_time, stray_time + 180)
@@ -109,6 +134,7 @@ function run_stray()
 
     -- get pets from status
     local pets = explode(",", status_stray["pets"])
+
     if pets[1] == "" then
       -- stop module
       util.log("no pets set")
@@ -117,36 +143,54 @@ function run_stray()
 
     -- start from begin if index is out of rage
     local pet_index = tonumber(status_stray["pets_index"])
-    if pet_index >= #pets then
+    if pet_index > #pets then
       util.log("restarting from begin")
-      training_index = 1
-      util.set_status("pet_index", "1")
+      pet_index = 1
+      util.set_status("pets_index", "1")
     end
 
     -- start training
     local next_pet = pets[pet_index]
     util.log("next pet: " .. next_pet)
-    return get_form(page, function(err, page)
+    return get_form(pet_page, function(err, ajax_page)
       if err then
         util.log_error(err)
         return on_finish(10, 20)
       else
-        local location = get_location(page)
-        if location == "" then
-          util.log("location not found")
-          return on_finish(60, 180)
-        end
+        return acknowledge(pet_page, ajax_page, function(ack_err, ack_done)
+          if ack_err then
+            util.log_error(ack_err)
+            return on_finish(60, 180)
+          end
 
-        local parameters = {
-          area_id = "2,Robust,1",
-          route_length = 10,
-          pet_id = pets[next_pet]
-        }
+          if ack_done then
+            return on_finish(10, 20)
+          end
 
-        return http.submit_form(page, "//form[@action = '/pet/pet_action/']", parameters, function(page)
-          -- next time -> next pet
-          util.set_status("pet_index", tostring(pet_index + 1))
-          return on_finish(10, 20)
+          if energy_check(ajax_page, pet_map[next_pet]) < 10 then
+            util.log("energy low")
+            util.set_status("pets_index", tostring(pet_index + 1))
+            return on_finish(30, 180)
+          end
+
+          local location = get_location(ajax_page)
+          if location == "" then
+            util.log("location not found")
+            return on_finish(60, 180)
+          end
+
+          local parameters = {
+            area_id = location,
+            route_length = "10",
+            pet_id = tostring(pet_map[next_pet])
+          }
+
+          util.log("sending pet to roam: " .. next_pet)
+          return http.submit_form(ajax_page, "//form[@action = '/pet/pet_action/']", parameters, function(page)
+            -- next time -> next pet
+            util.set_status("pets_index", tostring(pet_index + 1))
+            return on_finish(10, 20)
+          end)
         end)
       end
     end)
