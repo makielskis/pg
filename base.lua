@@ -66,17 +66,23 @@ function clear_cart(page, callback)
 end
 
 function explode(d,p)
-  local t, ll
+  local t, ll, l
   t={}
   ll=0
   if(#p == 1) then return {p} end
     while true do
       l=string.find(p,d,ll,true) -- find the next d in the string
       if l~=nil then -- if "not not" found then..
-        table.insert(t, string.sub(p,ll,l-1)) -- Save it in our array.
+        local element = string.sub(p, ll, l-1)
+        if element ~= "" then
+          table.insert(t, element) -- Save it in our array.
+        end
         ll=l+1 -- save just after where we found it for searching next time.
       else
-        table.insert(t, string.sub(p,ll)) -- Save what's left in our array.
+        local element = string.sub(p, ll)
+        if element ~= "" then
+          table.insert(t, element) -- Save what's left in our array.
+        end
         break -- Break at end, as it should be, according to the lua manual.
       end
     end
