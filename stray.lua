@@ -9,7 +9,7 @@ interface_stray = {}
 interface_stray["module"] = "Streunen"
 interface_stray["active"] = { input_type = "toggle", display_name = "Streunen" }
 interface_stray["pets"] = { input_type = "list_list", display_name = "Haustiere" }
-interface_stray["location"] = { input_type = "list_list", display_name = "Richtung" }
+interface_stray["location"] = { input_type = "dropdown", display_name = "Richtung" }
 
 location_translation = {}
 location_translation["Nord"] = 2
