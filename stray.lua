@@ -135,7 +135,7 @@ function run_stray()
     -- get pets from status
     local pets = explode(",", status_stray["pets"])
 
-    if pets[1] == "" then
+    if pets[1] == "" or pets[1] == nil then
       -- stop module
       util.log("no pets set")
       return on_finish(-1)
@@ -189,7 +189,8 @@ function run_stray()
           return http.submit_form(ajax_page, "//form[@action = '/pet/pet_action/']", parameters, function(page)
             -- next time -> next pet
             util.set_status("pets_index", tostring(pet_index + 1))
-            return on_finish(10, 20)
+            local stray_time = get_stray_time(page)
+            return on_finish(stray_time, stray_time + 180)
           end)
         end)
       end
