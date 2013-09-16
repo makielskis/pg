@@ -1,4 +1,5 @@
 servers = {}
+servers["http://malle.pennergame.de"] = "ml"
 servers["http://reloaded.pennergame.de"] = "rh"
 servers["http://koeln.pennergame.de"] = "kl"
 servers["http://reloaded.menelgame.pl"] = "rp"
