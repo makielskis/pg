@@ -3,8 +3,8 @@ interface_collect["module"] = "Flaschen sammeln"
 interface_collect["active"] = { input_type = "toggle", display_name = "Sammeln gehen" }
 
 function get_collect_time(page)
-	local link = util.get_by_xpath(page, "//a[@href = '/activities/' and @class= 'ttip']")
-  local collect_time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)\\)"))
+  local link = util.get_by_xpath(page, "//a[@href = '/activities/' and @class= 'ttip']")
+  local collect_time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)"))
   if collect_time >= 0 then
     util.log("collecting " .. collect_time)
   end
