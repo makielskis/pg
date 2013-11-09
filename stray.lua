@@ -74,7 +74,7 @@ end
 
 function get_stray_time(page)
 	local link = util.get_by_xpath(page, "//span[@id = 'pet_roam_time']/script")
-  local stray_time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)\\)"))
+  local stray_time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)"))
   if stray_time == nil then
     util.log("pet not roaming")
     return 0
