@@ -3,12 +3,14 @@ status_study["trainings"] = ","
 status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"
 status_study["alcohol"] = "0"
 status_study["training_index"] = "1"
+status_study["loot"] = "Verdreckter Zauberstab"
 
 interface_study = {}
 interface_study["module"] = "Weiterbildungen"
 interface_study["active"] = { input_type = "toggle", display_name = "Weiterbildungen starten" }
 interface_study["trainings"] = { input_type = "list_list", display_name = "Weiterbildungen" }
 interface_study["alcohol"] = { input_type = "checkbox", display_name = "Betrinken" }
+interface_study["loot"] = { input_type = "dropdown", display_name = "Plunder" }
 
 function start_training(page, training, callback)
   -- get taining name + mystery number
@@ -20,6 +22,16 @@ function start_training(page, training, callback)
   end
 
   return chain({
+    -- equip selected junk item
+    function(not_used_0, not_used_1, callback)
+      if (status_study["loot"] ~= "") then
+        return equip(status_study["loot"], callback)
+      end
+      
+      util.log("no junk selected")
+      return callback(false)
+    end,
+  
     -- INCREASE ALCOHOL (IF ACTIVATED)
     function(not_used_0, not_used_1, callback)
       if status_study["alcohol"] == "1" then

@@ -23,7 +23,7 @@ function login(username, password)
 end
 
 function chain(funs, err, param, callback)
-  if #funs == 0 then
+  if #funs == 0 or err ~= false then
     return callback(err, param)
   else
     local call_me = funs[1]

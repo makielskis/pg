@@ -2,12 +2,14 @@ status_fight = {}
 status_fight["victims"] = ""
 status_fight["auto"] = "0"
 status_fight["blocklist"] = ""
+status_fight["loot"] = ""
 
 interface_fight = {}
 interface_fight["module"] = "Kämpfen"
 interface_fight["active"] = { input_type = "toggle", display_name = "Kämpfen starten" }
 interface_fight["victims"] = { input_type = "list_textfield", display_name = "Gegner" }
 interface_fight["auto"] = { input_type = "checkbox", display_name = "Downfight Gegner" }
+interface_fight["loot"] = { input_type = "dropdown", display_name = "Plunder" }
 
 function get_fighttimer(callback)
   return get_pennerbar("kampftimer", function(not_used, timer)
@@ -168,36 +170,39 @@ function run_fight()
             return on_finish(timer + 10, timer + 60)
           end
 
-          -- start fight
-          util.log("starting fight")
-          return http.submit_form(page, "//input[@name = 'Submit2']", function(page)
-            -- check
-            local url = util.get_by_xpath(page, "//meta[@name = 'location']/@content")
-            local status = util.get_by_regex(url, "=([a-z]*)$")
-            if status == "limitexceed" then
-              util.log("victim not in point range")
-            elseif status == "notfound" then
-              util.log("victim dosn't exist")
-            elseif status == "locked36h" then
-              util.log("victim has 36h protection")
-            elseif status == "holiday" then
-              util.log("victim hast holiday protection")
-            elseif status == "erroractivity" then
-              return empty_cart(function(err, page)
-                return on_finish(20, 60)
-              end)
-            elseif status == "success" then
-              util.log("fight started")
-              set_next_victim()
-              return get_fighttimer(function(not_used, timer)
-                return on_finish(timer + 10, timer + 100)
-              end)
-            end
+          -- equip junk
+          return equip(status_fight["loot"], function(err)
+            -- start fight
+            util.log("starting fight")
+            return http.submit_form(page, "//input[@name = 'Submit2']", function(page)
+              -- check
+              local url = util.get_by_xpath(page, "//meta[@name = 'location']/@content")
+              local status = util.get_by_regex(url, "=([a-z]*)$")
+              if status == "limitexceed" then
+                util.log("victim not in point range")
+              elseif status == "notfound" then
+                util.log("victim dosn't exist")
+              elseif status == "locked36h" then
+                util.log("victim has 36h protection")
+              elseif status == "holiday" then
+                util.log("victim hast holiday protection")
+              elseif status == "erroractivity" then
+                return empty_cart(function(err, page)
+                  return on_finish(20, 60)
+                end)
+              elseif status == "success" then
+                util.log("fight started")
+                set_next_victim()
+                return get_fighttimer(function(not_used, timer)
+                  return on_finish(timer + 10, timer + 100)
+                end)
+              end
 
-            -- fight was not started
-            util.log("fight not started")
-            set_next_victim()
-            return on_finish(20, 60)
+              -- fight was not started
+              util.log("fight not started")
+              set_next_victim()
+              return on_finish(20, 60)
+            end)
           end)
         end)
       end)
