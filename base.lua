@@ -133,7 +133,7 @@ function get_loot(looting_page, callback)
         loot_list = loot_list .. "," .. k
       end
     end
-    util.set_global("loot_from", loot_list)
+    util.set_shared("loot_from", loot_list)
 
     return callback(false, map)
   end)

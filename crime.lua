@@ -7,10 +7,6 @@ interface_crime["module"] = "Verbrechen"
 interface_crime["active"] = { input_type = "toggle", display_name = "Verbrechen begehen" }
 interface_crime["crime"] = { input_type = "dropdown", display_name = "Verbrechen" }
 
-function trim(s)
-  return s:match "^%s*(.-)%s*$"
-end
-
 function commit_crime(id, callback)
   return http.get_path('/activities/crime/?start_crime=' .. id, function(page)
     return callback(false, page)
