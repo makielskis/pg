@@ -89,7 +89,104 @@ function explode(d,p)
   return t
 end
 
+function trim(s)
+  return s:match "^%s*(.-)%s*$"
+end
+
 function round(num, idp)
   local mult = 10^(idp or 0)
   return math.floor(num * mult + 0.5) / mult
+end
+
+-- Looting functions --
+
+function get_loot(looting_page, callback)
+  local xpath = "//ul[@id='plundertab']/li/a[contains(@href, 'c=')]"
+  local loot_paths = util.get_all_by_xpath(looting_page, xpath)
+
+  local index = 3 -- Reloaded
+  if #loot_paths <= 3 then
+    index = 1 -- Legacy
+  end
+
+  local loot_path = util.get_by_xpath(loot_paths[index], "a/@href")
+  if loot_path == "" then
+    return callback("could not get loot list")
+  end
+
+  local timestamp = os.time() * 1000 + math.random(0, 999)
+  loot_path = loot_path .. '&' .. timestamp
+
+  util.log("getting loot list")
+  return http.get_path(loot_path, function(ajax_page)
+    local map = {}
+    local loot = util.get_all_by_xpath(ajax_page, "//a[contains(@href, 'change_stuff')]")
+    for i, v in ipairs(loot) do
+      id = util.get_by_regex(v, [[change_stuff\('([0-9]+)']])
+      name = util.get_by_xpath(v, "/a/strong/text()")
+      map[trim(name)] = tonumber(id)
+    end
+
+    local loot_list = "-"
+    for k,v in pairs(map) do
+      if trim(k) ~= "" then
+        loot_list = loot_list .. "," .. k
+      end
+    end
+    util.set_global("loot_from", loot_list)
+
+    return callback(false, map)
+  end)
+end
+
+function is_equipped(page, loot)
+  local xpath = "//a[contains(@href, 'unarmPlunder')]/strong/text()"
+  local equipped = util.get_all_by_xpath(page, xpath)
+  for i, v in ipairs(equipped) do
+    local eqi = trim(v)
+    util.log_debug("equipped: " .. eqi)
+    if eqi == trim(loot) then
+      return true
+    end
+  end
+  return false
+end
+
+function isset(value)
+  return value ~= "" and value ~= "-"
+end
+
+function equip(loot, callback)
+  http.get_path("/stock/plunder/", function(looting_page)
+    return get_loot(looting_page, function(err, loot_map)
+      if err then
+        return callback(err)
+      end
+
+      if not isset(loot) then
+        return callback(false)
+      end
+
+      if is_equipped(looting_page, loot) then
+        util.log(loot .. " is already equipped")
+        return callback(false)
+      end
+
+      local loot_id = loot_map[loot]
+      if loot_id == nil then
+        return callback("loot id of " .. loot .. " not known")
+      end
+
+      util.log("equipping " .. loot)
+      local params = { f_plunder = tostring(loot_id), from_f = "0" }
+      return http.submit_form(looting_page, "//form[@id = 'form_skip']", params, function(page)
+        local success = is_equipped(page, loot)
+        if not success then
+          return callback("failed to equip " .. loot)
+        else
+          return callback(false)
+        end
+      end)
+    end)
+  end)
 end
