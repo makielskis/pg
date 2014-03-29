@@ -1,6 +1,6 @@
 interface_junk = {}
 interface_junk["module"] = "Plunder"
-interface_junk["active"] = { input_type = "toggle", display_name = "Plunder aktualisiern" }
+interface_junk["active"] = { input_type = "toggle", display_name = "Plunder aktualisieren" }
 
 function run_junk()
   return http.get_path("/stock/plunder/", function(looting_page)
