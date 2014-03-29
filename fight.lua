@@ -2,7 +2,8 @@ status_fight = {}
 status_fight["victims"] = ""
 status_fight["auto"] = "0"
 status_fight["blocklist"] = ""
-status_fight["loot"] = ""
+status_fight["loot"] = "-"
+status_fight["loot_from"] = "$loot_from"
 
 interface_fight = {}
 interface_fight["module"] = "Kämpfen"

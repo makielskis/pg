@@ -3,7 +3,8 @@ status_study["trainings"] = ","
 status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozkontakte,konzentration,pickpocket"
 status_study["alcohol"] = "0"
 status_study["training_index"] = "1"
-status_study["loot"] = "Verdreckter Zauberstab"
+status_study["loot"] = "-"
+status_study["loot_from"] = "$loot_from"
 
 interface_study = {}
 interface_study["module"] = "Weiterbildungen"
@@ -24,12 +25,7 @@ function start_training(page, training, callback)
   return chain({
     -- equip selected junk item
     function(not_used_0, not_used_1, callback)
-      if (status_study["loot"] ~= "") then
         return equip(status_study["loot"], callback)
-      end
-      
-      util.log("no junk selected")
-      return callback(false)
     end,
   
     -- INCREASE ALCOHOL (IF ACTIVATED)

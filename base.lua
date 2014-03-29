@@ -157,6 +157,10 @@ function isset(value)
 end
 
 function equip(loot, callback)
+  if (loot == "-" or loot.sub(1,1) == "$") then
+    util.log("no loot selected")
+    return callback(false)
+  end
   http.get_path("/stock/plunder/", function(looting_page)
     return get_loot(looting_page, function(err, loot_map)
       if err then

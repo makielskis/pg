@@ -1,12 +1,14 @@
 status_collect = {}
-status_collect["start_loot"] = ""
-status_collect["end_loot"] = "Dose \"Dr. Penner\""
+status_collect["startloot"] = "-"
+status_collect["startloot_from"] = "$loot_from"
+status_collect["endloot"] = "-"
+status_collect["endloot_from"] = "$loot_from"
 
 interface_collect = {}
 interface_collect["module"] = "Flaschen sammeln"
 interface_collect["active"] = { input_type = "toggle", display_name = "Sammeln gehen" }
-interface_collect["start_loot"] = { input_type = "dropdown", display_name = "Start-Plunder" }
-interface_collect["end_loot"] = { input_type = "dropdown", display_name = "Einkaufswagen-Plunder" }
+interface_collect["startloot"] = { input_type = "dropdown", display_name = "Start-Plunder" }
+interface_collect["endloot"] = { input_type = "dropdown", display_name = "Einkaufswagen-Plunder" }
 
 function get_collect_time(page)
   local link = util.get_by_xpath(page, "//a[@href = '/activities/' and @class= 'ttip']")
@@ -31,7 +33,7 @@ function run_collect()
 	      return on_finish(fight_time, fight_time + 180)
 	    else
 	      -- equip pre clear cart junk
-        return equip(status_collect["end_loot"], function(err)
+        return equip(status_collect["endloot"], function(err)
           -- empty cart
           return clear_cart(page, function(err, page)
 		        -- check preset collect time
@@ -40,7 +42,7 @@ function run_collect()
 		          local parameters = {}
 		          parameters["sammeln"] = selected
               -- equip pre start collection junk
-              return equip(status_collect["start_loot"], function(err)
+              return equip(status_collect["startloot"], function(err)
 		            -- start collection
 		            util.log("starting to collect - collect time " .. selected)
 		            return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
