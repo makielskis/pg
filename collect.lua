@@ -20,41 +20,95 @@ function get_collect_time(page)
 end
 
 function run_collect()
-	util.log("getting collect page")
-	return http.get_path("/activities/", function(page)
-	  -- check for activity
-	  local collect_time = get_collect_time(page)
-	  return get_pennerbar("kampftimer", function(err, fight_time)
-	    if collect_time > 0 then
-		    util.log("already collecting " .. collect_time)
-	      return on_finish(collect_time, collect_time + 180)
-	    elseif tonumber(fight_time) > 0 then
-		    util.log("fighting" .. fight_time)
-	      return on_finish(fight_time, fight_time + 180)
-	    else
-	      -- equip pre clear cart junk
-        return equip(status_collect["endloot"], function(err)
-          -- empty cart
-          return clear_cart(page, function(err, page)
-		        -- check preset collect time
-		        return http.get_path("/activities/", function(page)
-		          local selected = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
-		          local parameters = {}
-		          parameters["sammeln"] = selected
-              -- equip pre start collection junk
-              return equip(status_collect["startloot"], function(err)
-		            -- start collection
-		            util.log("starting to collect - collect time " .. selected)
-		            return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
-		              -- get collect time and sleep
-		              collect_time = get_collect_time(page)
-	                return on_finish(collect_time, collect_time + 180)
-                end)
-              end)
-            end)
-          end)
-        end)
-	    end
-    end)
+  chain({
+    -- get activity page
+    function(not_used_0, not_used_1, callback)
+      return http.get_path("/activities/", function(page)
+        return callback(false, page)
+      end)
+    end,
+
+    -- check for running activities
+    function(not_used, page, callback)
+      -- return when collecting
+      local collect_time = get_collect_time(page)
+      if collect_time > 0 then
+        util.log("already collecting")
+        return callback("blocked", collect_time)
+      end
+
+      return get_pennerbar("kampftimer", function(err, fight_time)
+        if err then
+          util.log("cannot read fight timer")
+          return callback(err)
+        end
+
+         -- return when fighting
+        fight_time = tonumber(fight_time)
+        if fight_time > 0 then
+          util.log("fighting " .. fight_time)
+          return callback("blocked", fight_time)
+        end
+
+        -- not blocked
+        return callback(false, page)
+      end)
+    end,
+
+    -- equip empty cart junk
+    function(not_used, page, callback)
+      return equip(status_collect["endloot"], function(err)
+        if err then
+          util.log(err)
+          return callback("loot")
+        end
+
+        return callback(false, page)
+      end)
+    end,
+
+    -- clear cart
+    function(not_used, page, callback)
+      clear_cart(page, callback)
+    end,
+
+    -- equip start loot
+    function(not_used_0, not_used_1, callback)
+      return equip(status_collect["startloot"], function(err)
+        if err then
+          util.log(err)
+          return callback("loot")
+        end
+
+        return callback(false)
+      end)
+    end,
+
+    -- reload page
+    function(not_used_0, not_used_1, callback)
+      return http.get_path("/activities/", function(page)
+        return callback(false, page)
+      end)
+    end,
+
+    -- start collecting
+    function(not_used, page, callback)
+      local selected = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
+      local parameters = {}
+      parameters["sammeln"] = selected
+
+      util.log("starting to collect - collect time " .. selected)
+
+      return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
+        collect_time = get_collect_time(page)
+        return callback(false, collect_time)
+      end)
+    end,
+  }, false, nil, function(err, time)
+    if err == "blocked" or err == false then
+      return on_finish(time, time + 180)
+    end
+
+    return on_finish(60, 180)
   end)
 end
