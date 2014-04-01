@@ -20,6 +20,9 @@ function get_collect_time(page)
 end
 
 function run_collect()
+  local cart_junk_lock_id = 0
+  local start_junk_lock_id = 0
+
   chain({
     -- get activity page
     function(not_used_0, not_used_1, callback)
@@ -57,11 +60,13 @@ function run_collect()
 
     -- equip empty cart junk
     function(not_used, page, callback)
-      return equip(status_collect["endloot"], function(err)
+      return equip(status_collect["endloot"], function(err, lock_id)
         if err then
           util.log(err)
           return callback("loot")
         end
+
+        cart_junk_lock_id = lock_id
 
         return callback(false, page)
       end)
@@ -69,16 +74,20 @@ function run_collect()
 
     -- clear cart
     function(not_used, page, callback)
-      clear_cart(page, callback)
+      return clear_cart(page, callback)
     end,
 
     -- equip start loot
     function(not_used_0, not_used_1, callback)
-      return equip(status_collect["startloot"], function(err)
+      unlock_loot(cart_junk_lock_id)
+
+      return equip(status_collect["startloot"], function(err, lock_id)
         if err then
           util.log(err)
           return callback("loot")
         end
+
+        start_junk_lock_id = lock_id
 
         return callback(false)
       end)
@@ -101,6 +110,7 @@ function run_collect()
 
       return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
         collect_time = get_collect_time(page)
+        unlock_loot(start_junk_lock_id)
         return callback(false, collect_time)
       end)
     end,

@@ -153,32 +153,73 @@ function is_equipped(page, loot)
 end
 
 function isset(value)
-  return value ~= "" and value ~= "-"
+  return value ~= "" and value ~= "-" and string.sub(value, 1, 1) ~= "$"
+end
+
+function lock_loot()
+  local new_loot_locked_until = os.time() + 300
+  util.set_shared("loot_locked_until", tostring(new_loot_locked_until))
+  util.log_debug("locked loot util " .. new_loot_locked_until .. " latest")
+  return new_loot_locked_until
+end
+
+function unlock_loot(id)
+  if id == nil then
+    util.log_error("unlock call with id = nil")
+    return
+  end
+
+  util.log_debug("unlocking loot: " .. id)
+  local correct_id = tonumber(util.get_shared("loot_locked_until"))
+  if correct_id == id then
+    util.set_shared("loot_locked_until", "0")
+    util.log_debug("loot unlocked")
+  else
+    util.log_error("wrong id provided: " .. id .. " (correct = " .. correct_id .. ")")
+  end
+end
+
+function try_lock_loot()
+  util.log_debug("trying to lock loot")
+  local locked_until = util.get_shared("loot_locked_until")
+  if locked_until == "" or os.time() > tonumber(locked_until) then
+    return lock_loot()
+  else
+    util.log_error("lock failed: now=" .. os.time() .. ", lock=" .. locked_until)
+    return false
+  end
 end
 
 function equip(loot, callback)
-  if (loot == "-" or loot.sub(1,1) == "$") then
+  util.log_debug("equip request for loot: " .. loot)
+
+  if not isset(loot) then
     util.log("no loot selected")
-    return callback(false)
+    return callback(false, nil)
   end
+
+  local id = try_lock_loot()
+  if not id then
+    util.log_error("unable to lock loot")
+    return callback(false, nil)
+  end
+
   http.get_path("/stock/plunder/", function(looting_page)
     return get_loot(looting_page, function(err, loot_map)
       if err then
-        return callback(err)
-      end
-
-      if not isset(loot) then
-        return callback(false)
+        unlock_loot(id)
+        return callback(err, nil)
       end
 
       if is_equipped(looting_page, loot) then
         util.log(loot .. " is already equipped")
-        return callback(false)
+        return callback(false, id)
       end
 
       local loot_id = loot_map[loot]
       if loot_id == nil then
-        return callback("loot id of " .. loot .. " not known")
+        unlock_loot(id)
+        return callback("loot id of " .. loot .. " not known", nil)
       end
 
       util.log("equipping " .. loot)
@@ -186,9 +227,10 @@ function equip(loot, callback)
       return http.submit_form(looting_page, "//form[@id = 'form_skip']", params, function(page)
         local success = is_equipped(page, loot)
         if not success then
-          return callback("failed to equip " .. loot)
+          unlock_loot(id)
+          return callback("failed to equip " .. loot, nil)
         else
-          return callback(false)
+          return callback(false, id)
         end
       end)
     end)
