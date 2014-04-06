@@ -173,6 +173,9 @@ function run_fight()
 
           -- equip junk
           return equip(status_fight["loot"], function(err)
+            if err then
+              return on_finish(60, 120)
+            end
             -- start fight
             util.log("starting fight")
             return http.submit_form(page, "//input[@name = 'Submit2']", function(page)
@@ -209,4 +212,9 @@ function run_fight()
       end)
     end
   end)
+end
+
+
+function finally_fight()
+  unlock_loot()
 end

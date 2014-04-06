@@ -27,7 +27,7 @@ function start_training(page, training, callback)
     function(not_used_0, not_used_1, callback)
         return equip(status_study["loot"], callback)
     end,
-  
+
     -- INCREASE ALCOHOL (IF ACTIVATED)
     function(not_used_0, not_used_1, callback)
       if status_study["alcohol"] == "1" then
@@ -207,4 +207,9 @@ function run_study()
       end)
     end)
   end)
+end
+
+
+function finally_study()
+  unlock_loot()
 end
