@@ -172,7 +172,7 @@ function run_fight()
           end
 
           -- equip junk
-          return equip(status_fight["loot"], function(err)
+          return equip(status_fight["loot"], false, function(err)
             if err then
               return on_finish(60, 120)
             end
@@ -214,7 +214,8 @@ function run_fight()
   end)
 end
 
-
 function finally_fight()
-  unlock_loot()
+  return loot_done(function()
+    return on_finish()
+  end)
 end

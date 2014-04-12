@@ -188,7 +188,7 @@ function try_lock_loot()
   end
 end
 
-function equip(loot, callback)
+function equip(loot, no_lock, callback)
   util.log_debug("equip request for loot: " .. loot)
 
   if not isset(loot) then
@@ -196,10 +196,18 @@ function equip(loot, callback)
     return callback(false, nil)
   end
 
-  local lock_success = try_lock_loot()
-  if not lock_success then
-    util.log_error("unable to lock loot")
-    return callback(false, nil)
+  if no_lock then
+    local locked = util.get_shared("loot_locked_by") ~= ""
+    if locked then
+      util.log_error("can't equip loot when locked")
+      return callback(false, nil)
+    end
+  else
+    local lock_success = try_lock_loot()
+    if not lock_success then
+      util.log_error("unable to lock loot")
+      return callback(false, nil)
+    end
   end
 
   http.get_path("/stock/plunder/", function(looting_page)
@@ -233,4 +241,9 @@ function equip(loot, callback)
       end)
     end)
   end)
+end
+
+function loot_done(callback)
+  unlock_loot()
+  equip(util.get_shared("defaultloot"), true, callback)
 end

@@ -25,7 +25,7 @@ function start_training(page, training, callback)
   return chain({
     -- equip selected junk item
     function(not_used_0, not_used_1, callback)
-        return equip(status_study["loot"], callback)
+        return equip(status_study["loot"], false, callback)
     end,
 
     -- INCREASE ALCOHOL (IF ACTIVATED)
@@ -211,5 +211,7 @@ end
 
 
 function finally_study()
-  unlock_loot()
+  return loot_done(function()
+    return on_finish()
+  end)
 end

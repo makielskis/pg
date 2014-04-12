@@ -42,7 +42,7 @@ function run_donate()
       end
 
       return clean(function()
-        return equip(status_donate["loot"], function(err)
+        return equip(status_donate["loot"], false, function(err)
           util.log("requesting donations")
           util.set_status("timestamp", tostring(os.time() + 86400))
           return http.post("http://pennerga.me/donate.php", "url=".. link, function(not_used)
@@ -59,5 +59,7 @@ function run_donate()
 end
 
 function finally_donate()
-  unlock_loot()
+  return loot_done(function()
+    return on_finish()
+  end)
 end

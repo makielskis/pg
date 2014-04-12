@@ -60,7 +60,7 @@ function run_collect()
 
     -- equip empty cart junk
     function(not_used, page, callback)
-      return equip(status_collect["endloot"], function(err)
+      return equip(status_collect["endloot"], false, function(err)
         if err then
           util.log(err)
           return callback("loot")
@@ -78,7 +78,7 @@ function run_collect()
     -- equip start loot
     function(not_used_0, not_used_1, callback)
 
-      return equip(status_collect["startloot"], function(err)
+      return equip(status_collect["startloot"], false, function(err)
         if err then
           util.log(err)
           return callback("loot")
@@ -118,5 +118,7 @@ function run_collect()
 end
 
 function finally_collect()
-  unlock_loot()
+  return loot_done(function()
+    return on_finish()
+  end)
 end
