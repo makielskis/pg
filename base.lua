@@ -245,5 +245,6 @@ end
 
 function loot_done(callback)
   unlock_loot()
+  util.log("equipping default loot")
   equip(util.get_shared("defaultloot"), true, callback)
 end
