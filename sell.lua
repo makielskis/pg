@@ -39,39 +39,46 @@ function run_sell()
   else
     -- Read current bottle price from /stock/bottle/
     return http.get_path("/stock/bottle/", function(page)
-      local current_price = get_bottle_price(page)
-      util.log("bottle price: " .. current_price)
-
-      -- Check if bottle price is greater or equal the sell price
-      if current_price >= tonumber(status_sell["price"]) then
-        parameters = {}
-        if status_sell["continuous"] == "1" then
-          -- Continous mode - sell all bottles (if any)
-          parameters["sum"] = get_max_bottles(page)
-          if tonumber(parameters["sum"]) ~= 0 then
-            util.log("selling " .. parameters["sum"] .. " (all) bottles at " .. current_price)
-          end
-        else
-          -- Non continuous mode - sell sell amount
-          parameters["sum"] = status_sell["amount"]
-          util.log("selling " .. status_sell["amount"] .. " bottles at " .. current_price)
+      return login_page(page, function(err, page)
+        if err then
+          util.log_error("not logged in")
+          return on_finish(30, 180)
         end
 
-        -- Submit sell form
-        return http.submit_form(page, "//form[contains(@action, '/bottle/sell/')]", parameters, function(page)
+        local current_price = get_bottle_price(page)
+        util.log("bottle price: " .. current_price)
+
+        -- Check if bottle price is greater or equal the sell price
+        if current_price >= tonumber(status_sell["price"]) then
+          parameters = {}
           if status_sell["continuous"] == "1" then
-            -- Wait 30sec - 3min until next check
-            return on_finish(30, 180)
+            -- Continous mode - sell all bottles (if any)
+            parameters["sum"] = get_max_bottles(page)
+            if tonumber(parameters["sum"]) ~= 0 then
+              util.log("selling " .. parameters["sum"] .. " (all) bottles at " .. current_price)
+            end
           else
-            -- Stop selling on non continous mode
-            return on_finish(-1)
+            -- Non continuous mode - sell sell amount
+            parameters["sum"] = status_sell["amount"]
+            util.log("selling " .. status_sell["amount"] .. " bottles at " .. current_price)
           end
-        end)
-      else
-        -- Sell price was below price - continue waiting
-        util.log("price too low - waiting")
-        return on_finish(30, 180)
-      end
+
+          -- Submit sell form
+          return http.submit_form(page, "//form[contains(@action, '/bottle/sell/')]", parameters, function(page)
+            if status_sell["continuous"] == "1" then
+              -- Wait 30sec - 3min until next check
+              return on_finish(30, 180)
+            else
+              -- Stop selling on non continous mode
+              return on_finish(-1)
+            end
+          end)
+        else
+          -- Sell price was below price - continue waiting
+          util.log("price too low - waiting")
+          return on_finish(30, 180)
+        end
+      end)
     end)
   end
 end

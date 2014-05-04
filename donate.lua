@@ -14,9 +14,17 @@ interface_donate["loot"] = { input_type = "dropdown", display_name = "Plunder" }
 function get_link(callback)
   util.log("getting link")
   return http.get_path("/overview/", function(page)
-    local link = util.get_by_xpath(page, '//input[@name="reflink"]/@value')
-    local err = link == ""
-    return callback(err, link)
+    return login_page(page, function(err, page)
+      if err then
+        return callback("not logged in", nil)
+      end
+      local link = util.get_by_xpath(page, '//input[@name="reflink"]/@value')
+      if link == "" then
+        return callback("no donate link", nil)
+      else
+        return callback(err, link)
+      end
+    end)
   end)
 end
 
@@ -37,7 +45,7 @@ function run_donate()
   if os.time() > tonumber(status_donate["timestamp"]) or status_donate["timestamp"] == "0" then
     return get_link(function(err, link)
       if err then
-        util.log("no donate link")
+        util.log_error(err)
         return on_finish(86400 + 10, 86400 + 60) -- 24h
       end
 

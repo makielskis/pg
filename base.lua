@@ -1,24 +1,30 @@
-function login(username, password)
+function login()
   util.log("getting start page")
   return http.get_path("/", function(page)
-    if string.find(page, 'action="/logout/"', 0, true) then
-      util.log("already logged in")
-      return on_finish(true)
-    end
-
-    util.log("logging in")
-    local param = {}
-    param["username"] = username
-    param["password"] = password
-    return http.submit_form(page, "//input[@name = 'submitForm']", param, function(page)
-      if string.find(page, 'action="/logout/', 0, true) then
-        util.log("logged in")
-        return on_finish(true)
-      else
-        util.log_error("not logged in")
-        return on_finish(false)
-      end
+    return login_page(page, function(err)
+      return on_finish(not err)
     end)
+  end)
+end
+
+function login_page(page, callback)
+  if string.find(page, 'action="/logout/"', 0, true) then
+    util.log("already logged in")
+    return callback(false, page)
+  end
+
+  util.log("logging in")
+  local param = {}
+  param["username"] = util.username()
+  param["password"] = util.password()
+  return http.submit_form(page, "//input[@name = 'submitForm']", param, function(page)
+    if string.find(page, 'action="/logout/', 0, true) then
+      util.log("logged in")
+      return callback(false, page)
+    else
+      util.log_error("not logged in")
+      return callback(true, page)
+    end
   end)
 end
 
@@ -27,7 +33,7 @@ function chain(funs, err, param, callback)
     return callback(err, param)
   else
     local call_me = funs[1]
-    return call_me(err, param, function(err, param)
+    return call_me(param, function(err, param)
       table.remove(funs, 1)
       return chain(funs, err, param, callback)
     end)
