@@ -122,78 +122,84 @@ end
 
 function run_stray()
   return http.get_path("/pet/", function(pet_page)
-    -- read list of pets
-    local pet_map = find_pets(pet_page)
-
-    -- check activity
-	  local stray_time = get_stray_time(pet_page)
-    if stray_time > 0 then
-	    util.log("already roaming " .. stray_time)
-      return on_finish(stray_time, stray_time + 180)
-    end
-
-    -- get pets from status
-    local pets = explode(",", status_stray["pets"])
-
-    if pets[1] == "" or pets[1] == nil then
-      -- stop module
-      util.log("no pets set")
-      return on_finish(-1)
-    end
-
-    -- start from begin if index is out of rage
-    local pet_index = tonumber(status_stray["pets_index"])
-    if pet_index > #pets then
-      util.log("restarting from begin")
-      pet_index = 1
-      util.set_status("pets_index", "1")
-    end
-
-    -- start training
-    local next_pet = pets[pet_index]
-    util.log("next pet: " .. next_pet)
-    return get_form(pet_page, function(err, ajax_page)
+    -- login
+    return login_page(pet_page, function(err, page)
       if err then
-        util.log_error(err)
-        return on_finish(10, 20)
-      else
-        return acknowledge(pet_page, ajax_page, function(ack_err, ack_done)
-          if ack_err then
-            util.log_error(ack_err)
-            return on_finish(60, 180)
-          end
-
-          if ack_done then
-            return on_finish(10, 20)
-          end
-
-          if energy_check(ajax_page, pet_map[next_pet]) < 10 then
-            util.log("energy low")
-            util.set_status("pets_index", tostring(pet_index + 1))
-            return on_finish(30, 180)
-          end
-
-          local location = get_location(ajax_page)
-          if location == "" then
-            util.log("location not found")
-            return on_finish(60, 180)
-          end
-
-          local parameters = {
-            area_id = location,
-            route_length = "10",
-            pet_id = tostring(pet_map[next_pet])
-          }
-
-          util.log("sending pet to roam: " .. next_pet)
-          return http.submit_form(ajax_page, "//form[@action = '/pet/pet_action/']", parameters, function(page)
-            -- next time -> next pet
-            util.set_status("pets_index", tostring(pet_index + 1))
-            local stray_time = get_stray_time(page)
-            return on_finish(stray_time, stray_time + 180)
-          end)
-        end)
+        util.log_error("not logged in")
+        return on_finish(30, 180)
       end
+      -- read list of pets
+      local pet_map = find_pets(pet_page)
+
+      -- check activity
+	    local stray_time = get_stray_time(pet_page)
+      if stray_time > 0 then
+	      util.log("already roaming " .. stray_time)
+        return on_finish(stray_time, stray_time + 180)
+      end
+
+      -- get pets from status
+      if status_stray["pets"] == "" then
+        -- stop module
+        util.log("no pets set")
+        return on_finish(-1)
+      end
+      local pets = explode(",", status_stray["pets"])
+
+      -- start from begin if index is out of rage
+      local pet_index = tonumber(status_stray["pets_index"])
+      if pet_index > #pets then
+        util.log("restarting from begin")
+        pet_index = 1
+        util.set_status("pets_index", "1")
+      end
+
+      -- start training
+      local next_pet = pets[pet_index]
+      util.log("next pet: " .. next_pet)
+      return get_form(pet_page, function(err, ajax_page)
+        if err then
+          util.log_error(err)
+          return on_finish(10, 20)
+        else
+          return acknowledge(pet_page, ajax_page, function(ack_err, ack_done)
+            if ack_err then
+              util.log_error(ack_err)
+              return on_finish(60, 180)
+            end
+
+            if ack_done then
+              return on_finish(10, 20)
+            end
+
+            if energy_check(ajax_page, pet_map[next_pet]) < 10 then
+              util.log("energy low")
+              util.set_status("pets_index", tostring(pet_index + 1))
+              return on_finish(30, 180)
+            end
+
+            local location = get_location(ajax_page)
+            if location == "" then
+              util.log("location not found")
+              return on_finish(60, 180)
+            end
+
+            local parameters = {
+              area_id = location,
+              route_length = "10",
+              pet_id = tostring(pet_map[next_pet])
+            }
+
+            util.log("sending pet to roam: " .. next_pet)
+            return http.submit_form(ajax_page, "//form[@action = '/pet/pet_action/']", parameters, function(page)
+              -- next time -> next pet
+              util.set_status("pets_index", tostring(pet_index + 1))
+              local stray_time = get_stray_time(page)
+              return on_finish(stray_time, stray_time + 180)
+            end)
+          end)
+        end
+      end)
     end)
   end)
 end

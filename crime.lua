@@ -51,37 +51,44 @@ function run_crime()
   -- get crime page
   util.log("getting crime page")
   return http.get_path("/activities/crime/", function(page)
-    -- read crimes
-    local crimes = get_crimes(page)
-
-    -- check for activity
-    local activity = tonumber(get_activity_time(page))
-    if activity > 0 then
-      util.log("already active for " .. activity .. "s")
-      return on_finish(activity + 60, activity + 120)
-    end
-
-    -- check if crime is set
-    if status_crime["crime"] == "" or status_crime["crime"] == "-" then
-      util.log_error("no crime set - exiting")
-      return on_finish(-1)
-    end
-
-    -- start selected crime
-    util.log("starting " .. status_crime["crime"])
-    if not crimes[status_crime["crime"]] then
-      util.log_error("\"" .. status_crime["crime"] .. "\" not found")
-      for k, v in pairs(crimes) do
-        util.log_error("\"" .. k .. "\"")
+    -- login
+    login_page(page, function(err, page)
+      if err then
+        return on_finish(30, 1)
       end
-      return on_finish(-1)
-    end
 
-    return commit_crime(crimes[status_crime["crime"]], function(err, page)
-      -- read activity time
-      activity = tonumber(get_activity_time(page))
-      util.log("blocked for " .. activity)
-      return on_finish(activity, activity + 180)
+      -- read crimes
+      local crimes = get_crimes(page)
+
+      -- check for activity
+      local activity = tonumber(get_activity_time(page))
+      if activity > 0 then
+        util.log("already active for " .. activity .. "s")
+        return on_finish(activity + 60, activity + 120)
+      end
+
+      -- check if crime is set
+      if status_crime["crime"] == "" or status_crime["crime"] == "-" then
+        util.log_error("no crime set - exiting")
+        return on_finish(-1)
+      end
+
+      -- start selected crime
+      util.log("starting " .. status_crime["crime"])
+      if not crimes[status_crime["crime"]] then
+        util.log_error("\"" .. status_crime["crime"] .. "\" not found")
+        for k, v in pairs(crimes) do
+          util.log_error("\"" .. k .. "\"")
+        end
+        return on_finish(-1)
+      end
+
+      return commit_crime(crimes[status_crime["crime"]], function(err, page)
+        -- read activity time
+        activity = tonumber(get_activity_time(page))
+        util.log("blocked for " .. activity)
+        return on_finish(activity, activity + 180)
+      end)
     end)
   end)
 end

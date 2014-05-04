@@ -25,14 +25,17 @@ function run_collect()
 
   chain({
     -- get activity page
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
       return http.get_path("/activities/", function(page)
         return callback(false, page)
       end)
     end,
 
+    --login check
+    login_page,
+
     -- check for running activities
-    function(not_used, page, callback)
+    function(page, callback)
       -- return when collecting
       local collect_time = get_collect_time(page)
       if collect_time > 0 then
@@ -59,7 +62,7 @@ function run_collect()
     end,
 
     -- equip empty cart junk
-    function(not_used, page, callback)
+    function(page, callback)
       return equip(status_collect["endloot"], false, function(err)
         if err then
           util.log(err)
@@ -71,12 +74,12 @@ function run_collect()
     end,
 
     -- clear cart
-    function(not_used, page, callback)
+    function(page, callback)
       return clear_cart(page, callback)
     end,
 
     -- equip start loot
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
 
       return equip(status_collect["startloot"], false, function(err)
         if err then
@@ -89,14 +92,14 @@ function run_collect()
     end,
 
     -- reload page
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
       return http.get_path("/activities/", function(page)
         return callback(false, page)
       end)
     end,
 
     -- start collecting
-    function(not_used, page, callback)
+    function(page, callback)
       local selected = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
       local parameters = {}
       parameters["sammeln"] = selected

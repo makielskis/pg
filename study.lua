@@ -24,12 +24,12 @@ function start_training(page, training, callback)
 
   return chain({
     -- equip selected junk item
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
         return equip(status_study["loot"], false, callback)
     end,
 
     -- INCREASE ALCOHOL (IF ACTIVATED)
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
       if status_study["alcohol"] == "1" then
         return increase_alc(callback)
       else
@@ -38,7 +38,7 @@ function start_training(page, training, callback)
     end,
 
     -- START TRAINING ALCOHOL
-    function(not_used_0, not_used_1, callback)
+    function(not_used_1, callback)
       util.log("starting training: " .. training)
       local action = "/skill/upgrade/" .. btn_id .. "/"
       return http.submit_form(page, "//form[@name = 'starten']", {}, action, function(page)
@@ -47,7 +47,7 @@ function start_training(page, training, callback)
     end,
 
     -- DECREASE ALCOHOL (IF ACTIVATED)
-    function(not_used, page, callback)
+    function(page, callback)
       if status_study["alcohol"] == "1" then
         -- make sure the form submit response is forwarded to the success check
         return eat_bread(9, function(not_used_0, not_used_1)
@@ -59,7 +59,7 @@ function start_training(page, training, callback)
     end,
 
     -- CHECK SUCCESS
-    function(err, page, callback)
+    function(page, callback)
       local url = util.get_by_xpath(page, "//meta[@name = 'location']/@content")
       if string.find(url, "success") == nil then
         return callback(true, page)
@@ -70,10 +70,13 @@ function start_training(page, training, callback)
   }, false, page, callback)
 end
 
-function get_timer(callback)
-  return get_pennerbar("timer", function(err, timer)
-    return callback(err, tonumber(timer))
-  end)
+function get_timer(page)
+  local link = util.get_by_xpath(page, "//a[@href = '/skills/' and @class= 'ttip']")
+  local time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)"))
+  if time >= 0 then
+    util.log("collecting " .. time)
+  end
+	return time
 end
 
 function buy_food(count, callback)
@@ -139,15 +142,15 @@ function increase_alc(callback)
       return callback(true, nil)
     else
       return chain({
-        function(not_used_0, not_used_1, callback)
+        function(not_used_1, callback)
           return buy_food(9, callback)
         end,
 
-        function(not_used_0, not_used_1, callback)
+        function(not_used_1, callback)
           return buy_beer(beerCount, callback)
         end,
 
-        function(not_used_0, not_used_1, callback)
+        function(not_used_1, callback)
           return drink_beer(beerCount, callback)
         end
       }, false, nil, callback)
@@ -157,12 +160,13 @@ end
 
 function run_study()
   -- get trainings from staus
-  local trainings = explode(",", status_study["trainings"])
-  if trainings[1] == "" then
+  if status_study["trainings"] == "" then
     -- stop module
     util.log("no trainings set")
     return on_finish(-1)
   end
+
+  local trainings = explode(",", status_study["trainings"])
 
   -- start from begin if index is out of rage
   local training_index = tonumber(status_study["training_index"])
@@ -172,34 +176,41 @@ function run_study()
     util.set_status("training_index", "1")
   end
 
-  return get_timer(function(err, timer)
-    -- check timer
-    if timer >= 0 then
-      util.log("wait for running training to finish")
-      return on_finish(timer + 10, timer + 60)
-    end
+  return http.get_path("/skills/", function(page)
+    -- login
+    return login_page(page, function(err, page)
+      if err then
+        util.log_error("not logged in")
+        return on_finish(30, 180)
+      end
 
-    -- start training
-    local next_training = trainings[training_index]
-    util.log("next training: " .. next_training)
+      -- check timer
+      local timer = get_timer(page)
+      if timer >= 0 then
+        util.log("wait for running training to finish")
+        return on_finish(timer + 10, timer + 60)
+      end
 
-    util.log("getting study page")
-    return http.get_path("/skills/", function(page)
-      return start_training(page, next_training, function(err, not_used)
+      -- start training
+      local next_training = trainings[training_index]
+      util.log("next training: " .. next_training)
+
+      util.log("getting study page")
+
+      return start_training(page, next_training, function(err, page)
         -- next time -> next training
         util.set_status("training_index", tostring(training_index + 1))
 
         -- evaluate err
         if not err then
-          return get_timer(function(err, timer)
-            if timer >= 0 then
-              -- training start
-              return on_finish(timer + 10, timer + 60)
-            else
-              -- training not started go for the next one
-              return on_finish(10, 60)
-            end
-          end)
+          local timer = get_timer(page)
+          if timer >= 0 then
+            -- training start
+            return on_finish(timer + 10, timer + 60)
+          else
+            -- training not started go for the next one
+            return on_finish(10, 60)
+          end
         end
 
         -- training not started go for the next one
@@ -208,7 +219,6 @@ function run_study()
     end)
   end)
 end
-
 
 function finally_study()
   return loot_done(function()
