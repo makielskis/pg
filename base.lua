@@ -159,7 +159,7 @@ function is_equipped(page, loot)
 end
 
 function isset(value)
-  return value ~= "" and value ~= "-" and string.sub(value, 1, 1) ~= "$"
+  return value ~= "" and value ~= "-" and string.sub(value, 1, 1) ~= "$" and string.sub(value, 1, 1) ~= "^"
 end
 
 function lock_loot()
