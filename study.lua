@@ -37,7 +37,7 @@ function start_training(page, training, callback)
       end
     end,
 
-    -- START TRAINING ALCOHOL
+    -- START TRAINING
     function(not_used_1, callback)
       util.log("starting training: " .. training)
       local action = "/skill/upgrade/" .. btn_id .. "/"
@@ -62,7 +62,7 @@ function start_training(page, training, callback)
     function(page, callback)
       local url = util.get_by_xpath(page, "//meta[@name = 'location']/@content")
       if string.find(url, "success") == nil then
-        return callback(true, page)
+        return callback("return status != success", page)
       else
         return callback(false, page)
       end
@@ -74,9 +74,9 @@ function get_timer(page)
   local link = util.get_by_xpath(page, "//a[@href = '/skills/' and @class= 'ttip']")
   local time = tonumber(util.get_by_regex(link, "counter\\((-?[0-9]*)"))
   if time >= 0 then
-    util.log("collecting " .. time)
+    util.log("training active: " .. time)
   end
-	return time
+  return time
 end
 
 function buy_food(count, callback)
@@ -211,10 +211,12 @@ function run_study()
             -- training not started go for the next one
             return on_finish(10, 60)
           end
+        else
+          -- training not started go for the next one
+          util.log_error("training not started")
+          util.log_error("error: " .. err)
+          return on_finish(10, 60)
         end
-
-        -- training not started go for the next one
-        return on_finish(10, 60)
       end)
     end)
   end)
