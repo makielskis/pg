@@ -3,12 +3,15 @@ status_collect["startloot"] = "-"
 status_collect["startloot_from"] = "$loot_from"
 status_collect["endloot"] = "-"
 status_collect["endloot_from"] = "$loot_from"
+status_collect["collecttime"] = "auto"
+status_collect["collecttime_from"] = "auto,read"
 
 interface_collect = {}
 interface_collect["module"] = "Flaschen sammeln"
 interface_collect["active"] = { input_type = "toggle", display_name = "Sammeln gehen" }
 interface_collect["startloot"] = { input_type = "dropdown", display_name = "Start-Plunder" }
 interface_collect["endloot"] = { input_type = "dropdown", display_name = "Einkaufswagen-Plunder" }
+interface_collect["collecttime"] = { input_type = "dropdown", display_name = "Sammelzeit (in Minuten)" }
 
 function get_collect_time(page)
   local link = util.get_by_xpath(page, "//a[@href = '/activities/' and @class= 'ttip']")
@@ -19,6 +22,17 @@ function get_collect_time(page)
 	return collect_time
 end
 
+function get_collect_times(page)
+  util.log("reading collect times")
+  local options = util.get_all_by_xpath(page, "//select[@name = 'time']/option")
+  local collect_times = "auto,read"
+  for k,v in pairs(options) do
+    collect_times = collect_times .. "," .. util.get_by_regex(v, 'value="([^"]*)')
+  end
+  util.set_status("collecttime_from", collect_times)
+  return
+end
+
 function run_collect()
   local cart_junk_lock_id = 0
   local start_junk_lock_id = 0
@@ -27,7 +41,13 @@ function run_collect()
     -- get activity page
     function(not_used_1, callback)
       return http.get_path("/activities/", function(page)
-        return callback(false, page)
+        get_collect_times(page)
+
+        if status_collect["collecttime"] == "read" then
+          return callback("read_done", -1)
+        else
+          return callback(false, page)
+        end
       end)
     end,
 
@@ -80,7 +100,6 @@ function run_collect()
 
     -- equip start loot
     function(not_used_1, callback)
-
       return equip(status_collect["startloot"], false, function(err)
         if err then
           util.log(err)
@@ -100,11 +119,15 @@ function run_collect()
 
     -- start collecting
     function(page, callback)
-      local selected = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
       local parameters = {}
-      parameters["sammeln"] = selected
 
-      util.log("starting to collect - collect time " .. selected)
+      if not isset(status_collect["collecttime"]) or status_collect["collecttime"] == "auto" then
+        parameters["sammeln"] = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
+      else
+        parameters["sammeln"] = status_collect["collecttime"]
+      end
+
+      util.log("starting to collect - collect time " .. parameters["sammeln"])
 
       return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
         collect_time = get_collect_time(page)
@@ -112,11 +135,14 @@ function run_collect()
       end)
     end,
   }, false, nil, function(err, time)
-    if err == "blocked" or err == false then
+    if time == -1 then
+      util.log("quitting")
+      return on_finish(-1)
+    elseif err == "blocked" or err == false then
       return on_finish(time, time + 180)
+    else
+      return on_finish(60, 180)
     end
-
-    return on_finish(60, 180)
   end)
 end
 
