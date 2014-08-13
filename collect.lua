@@ -3,8 +3,9 @@ status_collect["startloot"] = "-"
 status_collect["startloot_from"] = "$loot_from"
 status_collect["endloot"] = "-"
 status_collect["endloot_from"] = "$loot_from"
-status_collect["collecttime"] = "auto"
-status_collect["collecttime_from"] = "auto,read"
+status_collect["collecttime"] = ""
+status_collect["collecttime_from"] = ""
+status_collect["collecttimeauto"] = "0"
 
 interface_collect = {}
 interface_collect["module"] = "Flaschen sammeln"
@@ -12,6 +13,7 @@ interface_collect["active"] = { input_type = "toggle", display_name = "Sammeln g
 interface_collect["startloot"] = { input_type = "dropdown", display_name = "Start-Plunder" }
 interface_collect["endloot"] = { input_type = "dropdown", display_name = "Einkaufswagen-Plunder" }
 interface_collect["collecttime"] = { input_type = "dropdown", display_name = "Sammelzeit (in Minuten)" }
+interface_collect["collecttimeauto"] = { input_type = "checkbox", display_name = "Sammelzeit automatisch erkennen" }
 
 function get_collect_time(page)
   local link = util.get_by_xpath(page, "//a[@href = '/activities/' and @class= 'ttip']")
@@ -25,7 +27,7 @@ end
 function get_collect_times(page)
   util.log("reading collect times")
   local options = util.get_all_by_xpath(page, "//select[@name = 'time']/option")
-  local collect_times = "auto,read"
+  local collect_times = ""
   for k,v in pairs(options) do
     collect_times = collect_times .. "," .. util.get_by_regex(v, 'value="([^"]*)')
   end
@@ -43,11 +45,12 @@ function run_collect()
       return http.get_path("/activities/", function(page)
         get_collect_times(page)
 
-        if status_collect["collecttime"] == "read" then
-          return callback("read_done", -1)
-        else
-          return callback(false, page)
+        if not isset(status_collect["collecttime"]) and status_collect["collecttimeauto"] ~= "1" then
+          util.log("no collect time set")
+          return callback("stop", 0)
         end
+
+        return callback(false, page)
       end)
     end,
 
@@ -121,22 +124,24 @@ function run_collect()
     function(page, callback)
       local parameters = {}
 
-      if not isset(status_collect["collecttime"]) or status_collect["collecttime"] == "auto" then
+      if status_collect["collecttimeauto"] == "1" then
         parameters["sammeln"] = util.get_by_xpath(page, "//select[@name = 'time']/option[@selected = 'selected']/@value")
-      else
+      elseif isset(status_collect["collecttime"]) then
         parameters["sammeln"] = status_collect["collecttime"]
+      else
+        util.log("no collect time set [late]")
+        return callback("stop", 0)
       end
 
       util.log("starting to collect - collect time " .. parameters["sammeln"])
-
       return http.submit_form(page, "//form[contains(@name, 'starten')]", parameters, "/activities/bottle/", function(page)
         collect_time = get_collect_time(page)
         return callback(false, collect_time)
       end)
     end,
   }, false, nil, function(err, time)
-    if time == -1 then
-      util.log("quitting")
+    if err == "stop" then
+      util.log_debug("collect time missing - quit")
       return on_finish(-1)
     elseif err == "blocked" or err == false then
       return on_finish(time, time + 180)
