@@ -111,7 +111,7 @@ function drink_beer(count, callback)
   local params = {}
   params["menge"] = count
 
-  return http.get_path("/stock/", function(page)
+  return http.get_path("/stock/foodstuffs/", function(page)
     return http.submit_form(page, "//input[@id = 'drink_Bier']", params, function(page)
       return callback(false, page)
     end)
