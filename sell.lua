@@ -11,16 +11,10 @@ interface_sell["continuous"] = { input_type = "checkbox", display_name = "Dauerv
 interface_sell["amount"] = { input_type = "textfield", display_name = "Verkaufsmenge" }
 
 function get_bottle_price(str)
-  price = util.get_by_xpath(str, "//font[@id = 'wirkung']")
-
-  a, b = string.find(price, ".%d%d")
+  price = util.get_by_xpath(str, "//a[@href = '/stock/bottle/' and @class='ttip']")
+  a, b = string.find(price, "%d%d")
   if a then
-    return tonumber(string.sub(price, a + 1, b))
-  end
-
-  a, b = string.find(price, ",%d%d")
-  if a then
-    return tonumber(string.sub(price, a + 1, b))
+    return tonumber(string.sub(price, a, b))
   end
 
   return tonumber(price)
