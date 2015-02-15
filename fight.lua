@@ -172,7 +172,7 @@ function run_fight()
       -- start fight
       util.log("next victim: " .. next_victim)
       util.log("getting fight page")
-      return http.get_path("/fight/?to=" .. next_victim, function(page)
+      return http.get_path("/fight/?to=" .. http.url_encode(next_victim), function(page)
         return login_page(page, function(err, page)
           if err then
             util.log_error("not logged in")
