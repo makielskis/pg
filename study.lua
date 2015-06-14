@@ -170,7 +170,7 @@ function run_study()
 
   -- start from begin if index is out of rage
   local training_index = tonumber(status_study["training_index"])
-  if training_index >= #trainings then
+  if training_index > #trainings then
     util.log("restarting from begin")
     training_index = 1
     util.set_status("training_index", "1")
