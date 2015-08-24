@@ -80,7 +80,7 @@ function run_crime()
         for k, v in pairs(crimes) do
           util.log_error("\"" .. k .. "\"")
         end
-        return on_finish(-1)
+        return on_finish(30, 180)
       end
 
       return commit_crime(crimes[status_crime["crime"]], function(err, page)
