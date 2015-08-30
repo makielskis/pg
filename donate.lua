@@ -13,19 +13,11 @@ interface_donate["loot"] = { input_type = "dropdown", display_name = "Plunder" }
 
 max_donations = 12
 
-function get_next_donation_time()
-  return tonumber(status_donate["timestamp"])
-end
-
 function set_current_donations(donation_count)
   util.log_debug("current donations: " .. tostring(donation_count))
   local current_donations_str = tostring(donation_count)
   util.set_status("donation_count", current_donations_str)
   status_donate["donation_count"] = current_donations_str
-end
-
-function is_first_donation_time()
-  return status_donate["timestamp"] == "0"
 end
 
 function get_current_donations()
@@ -39,7 +31,7 @@ end
 
 function check_donation_needed()
   local now = os.time()
-  local next_donation_time = get_next_donation_time()
+  local next_donation_time = tonumber(status_donate["timestamp"])
   local overdue = now > next_donation_time
   util.log_debug("now=" .. now .. ", next=" .. next_donation_time .. ", overdue=" .. tostring(overdue))
 

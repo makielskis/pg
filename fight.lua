@@ -48,10 +48,9 @@ function get_downfight_victim(fightpage, callback)
   local def = tonumber(util.get_by_xpath(fightpage, "//div[@class = 'box_def']/span[@class = 'fight_num']"))
 
   -- get highscore limits
-  local highscore_link = util.get_by_xpath(fightpage, "//a[contains(@href, '/highscore/user/?min=')]/@href")
-  local matches = util.get_all_by_regex(highscore_link, "=([\\d]*)")
-  local min_score = tonumber(matches[1][1])
-  local max_score = tonumber(matches[2][1])
+  local own_highscore = tonumber(util.get_by_xpath(fightpage, "//div[contains(@class, 'profile-data')]/span[last()]/text()"))
+  local min_score = math.ceil(own_highscore - (0.2 * own_highscore))
+  local max_score = math.floor(own_highscore + (0.5 * own_highscore))
 
   -- get city
   local city_code = util.get_by_xpath(fightpage, "//meta[@name = 'language']/@content")
