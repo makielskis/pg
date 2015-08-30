@@ -194,6 +194,26 @@ function try_lock_loot()
   end
 end
 
+function get_loot_page(callback)
+  return http.get_path("/stock/plunder/", function(looting_page)
+    return login_page(looting_page, function(err, looting_page)
+      if err then
+        return callback("not logged in")
+      end
+
+      local loot_cats_switch_to_old = util.get_by_xpath(looting_page, "//a[contains(@href, 'rc=disable')]/@href")
+      if loot_cats_switch_to_old ~= "" then
+        util.log("requesting old layout: " .. loot_cats_switch_to_old)
+        return http.get_path(loot_cats_switch_to_old, function(looting_page)
+          return callback(false, looting_page)
+        end)
+      else
+        return callback(false, looting_page)
+      end
+    end)
+  end)
+end
+
 function equip(loot, no_lock, callback)
   util.log_debug("equip request for loot: " .. loot)
 
@@ -216,7 +236,12 @@ function equip(loot, no_lock, callback)
     end
   end
 
-  http.get_path("/stock/plunder/", function(looting_page)
+  get_loot_page(function(err, looting_page)
+    if err then
+      util.log_err(err)
+      return callback(err, nil)
+    end
+
     return get_loot(looting_page, function(err, loot_map)
       if err then
         unlock_loot()
