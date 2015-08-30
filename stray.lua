@@ -9,13 +9,11 @@ interface_stray = {}
 interface_stray["module"] = "Streunen"
 interface_stray["active"] = { input_type = "toggle", display_name = "Streunen" }
 interface_stray["pets"] = { input_type = "list_list", display_name = "Haustiere" }
-interface_stray["location"] = { input_type = "dropdown", display_name = "Richtung" }
 
-location_translation = {}
-location_translation["Nord"] = 2
-location_translation["Sued"] = 3
-location_translation["Ost"] = 4
-location_translation["West"] = 5
+pet_type = {}
+pet_type[1] = "robust"
+pet_type[2] = "flink"
+pet_type[3] = "wild"
 
 function split(str)
   local out = {}
@@ -40,10 +38,13 @@ function find_pets(page)
   for i, pet_box in ipairs(pet_boxes) do
     local pet_id = tonumber(string.sub(util.get_by_xpath(pet_box, "/div/@id"), 4))
     local pet_name = util.get_by_xpath(pet_box, "//div[contains(@class, 'petname')]")
+    local pet_good = tonumber(string.sub(util.get_by_xpath(pet_box, "//div[contains(@style, '#0F0')]/img/@src"), -5, -5))
+    local pet_bad = tonumber(string.sub(util.get_by_xpath(pet_box, "//div[contains(@style, '#F00')]/img/@src"), -5, -5))
+
     pet_name = split(pet_name)[1] .. ' (Slot ' .. i .. ')'
 
     -- put it into pets table
-    pets[pet_name] = pet_id
+    pets[pet_name] = { id=pet_id, good=pet_good, bad=pet_bad }
 
     -- append pet to status
     if status == '' then
@@ -85,14 +86,25 @@ function get_stray_time(page)
 	return stray_time
 end
 
-function get_location(page)
+function get_location(page, good, bad)
   local slots = util.get_all_by_xpath(page, "//select[@name = 'area_id']/option")
+  local not_bad = ""
   for i, location in ipairs(slots) do
-    if i == location_translation[status_stray["location"]] then
-      return util.get_by_regex(location, 'value="([^"]*)')
+    if i ~= 1 then
+      local value = util.get_by_xpath(location, "/option/@value")
+      local name = util.get_by_xpath(location, "/option/text()")
+      local type = tonumber(string.sub(value, -1))
+      local option = util.get_by_regex(location, 'value="([^"]*)')
+
+      if type == good then
+        util.log("good vs " .. pet_type[good] .. " - " .. name)
+        return option
+      elseif type ~= bad then
+        not_bad = option
+      end
     end
   end
-  return ""
+  return not_bad
 end
 
 function acknowledge(pet_page, ajax_page, callback)
@@ -172,13 +184,13 @@ function run_stray()
               return on_finish(10, 20)
             end
 
-            if energy_check(ajax_page, pet_map[next_pet]) < 10 then
+            if energy_check(ajax_page, pet_map[next_pet].id) < 10 then
               util.log("energy low")
               util.set_status("pets_index", tostring(pet_index + 1))
               return on_finish(30, 180)
             end
 
-            local location = get_location(ajax_page)
+            local location = get_location(ajax_page, pet_map[next_pet].good, pet_map[next_pet].bad)
             if location == "" then
               util.log("location not found")
               return on_finish(60, 180)
@@ -187,7 +199,7 @@ function run_stray()
             local parameters = {
               area_id = location,
               route_length = "10",
-              pet_id = tostring(pet_map[next_pet])
+              pet_id = tostring(pet_map[next_pet].id)
             }
 
             util.log("sending pet to roam: " .. next_pet)
