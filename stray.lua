@@ -89,6 +89,8 @@ end
 function get_location(page, good, bad)
   local slots = util.get_all_by_xpath(page, "//select[@name = 'area_id']/option")
   local not_bad = ""
+  local any = ""
+
   for i, location in ipairs(slots) do
     if i ~= 1 then
       local value = util.get_by_xpath(location, "/option/@value")
@@ -100,11 +102,21 @@ function get_location(page, good, bad)
         util.log("good vs " .. pet_type[good] .. " - " .. name)
         return option
       elseif type ~= bad then
+        util.log("not bad vs " .. pet_type[type] .. " - " .. name)
         not_bad = option
+      else
+        any = option
       end
     end
   end
-  return not_bad
+
+  if not_bad ~= "" then
+    util.log("using not bad location - no good available")
+    return not_bad
+  else
+    util.log("using bad location - nothing else available")
+    return any
+  end
 end
 
 function acknowledge(pet_page, ajax_page, callback)
