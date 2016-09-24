@@ -4,6 +4,7 @@ status_study["trainings_from"] = "att,def,agi,sprechen,bildungsstufe,musik,sozko
 status_study["alcohol"] = "0"
 status_study["training_index"] = "1"
 status_study["loot"] = "-"
+status_study["loop"] = "1"
 status_study["loot_from"] = "$loot_from"
 
 interface_study = {}
@@ -11,6 +12,7 @@ interface_study["module"] = "Weiterbildungen"
 interface_study["active"] = { input_type = "toggle", display_name = "Weiterbildungen starten" }
 interface_study["trainings"] = { input_type = "list_list", display_name = "Weiterbildungen" }
 interface_study["alcohol"] = { input_type = "checkbox", display_name = "Betrinken" }
+interface_study["loop"] = { input_type = "checkbox", display_name = "Dauerschleife" }
 interface_study["loot"] = { input_type = "dropdown", display_name = "Plunder" }
 
 function start_training(page, training, callback)
@@ -169,11 +171,15 @@ function run_study()
   local trainings = explode(",", status_study["trainings"])
 
   -- start from begin if index is out of rage
-  local training_index = tonumber(status_study["training_index"])
-  if training_index > #trainings then
-    util.log("restarting from begin")
-    training_index = 1
-    util.set_status("training_index", "1")
+  local training_index = 1
+
+  if status_study["loop"] ~= "0" then
+    training_index = tonumber(status_study["training_index"])
+    if training_index > #trainings then
+      util.log("restarting from begin")
+      training_index = 1
+      util.set_status("training_index", "1")
+    end
   end
 
   return http.get_path("/skills/", function(page)
@@ -199,10 +205,17 @@ function run_study()
 
       return start_training(page, next_training, function(err, page)
         -- next time -> next training
-        util.set_status("training_index", tostring(training_index + 1))
+        if status_study["loop"] ~= "0" then
+          util.set_status("training_index", tostring(training_index + 1))
+        end
 
         -- evaluate err
         if not err then
+          if status_study["loop"] == "0" then
+            table.remove(trainings, training_index)
+            util.set_status("trainings", table.concat(trainings, ","))
+          end
+
           local timer = get_timer(page)
           if timer >= 0 then
             -- training start
